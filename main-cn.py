@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
 from contextlib import asynccontextmanager
 from tavily import TavilyClient
-
+from dotenv import load_dotenv
 
 # GraphRAG 相关导入
 from graphrag.query.context_builder.entity_extraction import EntityVectorStoreKey
@@ -40,8 +40,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # 设置常量和配置
-INPUT_DIR = os.getenv('INPUT_DIR')
-LANCEDB_URI = f"{INPUT_DIR}/lancedb"
 COMMUNITY_REPORT_TABLE = "create_final_community_reports"
 ENTITY_TABLE = "create_final_nodes"
 ENTITY_EMBEDDING_TABLE = "create_final_entities"
@@ -105,7 +103,7 @@ async def setup_llm_and_embedder():
     设置语言模型（LLM）和嵌入模型
     """
     logger.info("正在设置LLM和嵌入器")
-
+    load_dotenv()
     # 获取API密钥和基础URL
     api_key = os.environ.get("GRAPHRAG_API_KEY", "YOUR_API_KEY")
     api_key_embedding = os.environ.get("GRAPHRAG_API_KEY_EMBEDDING", api_key)
@@ -152,6 +150,10 @@ async def load_context():
     """
     加载上下文数据，包括实体、关系、报告、文本单元和协变量
     """
+    # 加载.env文件中的环境变量
+    load_dotenv()
+    INPUT_DIR = os.getenv('INPUT_DIR')
+    LANCEDB_URI = f"{INPUT_DIR}/lancedb"
     logger.info("正在加载上下文数据")
     try:
         entity_df = pd.read_parquet(f"{INPUT_DIR}/{ENTITY_TABLE}.parquet")
@@ -327,6 +329,7 @@ async def lifespan(app: FastAPI):
     # 启动时执行
     global local_search_engine, global_search_engine, question_generator
     try:
+        load_dotenv()
         logger.info("正在初始化搜索引擎和问题生成器...")
         llm, token_encoder, text_embedder = await setup_llm_and_embedder()
         entities, relationships, reports, text_units, description_embedding_store, covariates = await load_context()
